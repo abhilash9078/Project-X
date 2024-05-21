@@ -1,9 +1,10 @@
 CREATE TABLE IF NOT EXISTS
     users (
         userid text NOT NULL,
-        email text NOT NULL,
         mobile text NOT NULL,
+        email text default NULL,
         name text NOT NULL CHECK (char_length(name) <= 256),
+        password text NOT NULL,
         ispendingapproval boolean NOT NULL,
         isenabled boolean NOT NULL,
         updatedat bigint default CAST(
@@ -15,7 +16,28 @@ CREATE TABLE IF NOT EXISTS
         ) NOT NULL,
         updatedby text NOT NULL,
         usermeta jsonb NOT NULL,
-        PRIMARY KEY (orgid, userid),
+        PRIMARY KEY (userid, mobile),
+        UNIQUE (userid)
+    );
+
+CREATE TABLE IF NOT EXISTS
+    useraddress (
+        userid text NOT NULL,
+        addressid text NOT NULL,
+        mobile text NOT NULL,
+        pin text NOT NULL,
+        currentlocation jsonb NOT NULL,
+        landmark text NOT NULL,
+        addressmeta jsonb NOT NULL,
+        updatedat bigint default CAST(
+            extract(
+                epoch
+                from
+                    now()
+            ) * 1000 as bigint
+        ) NOT NULL,
+        updatedby text NOT NULL,
+        PRIMARY KEY (userid, addressid),
         UNIQUE (userid)
     );
 
