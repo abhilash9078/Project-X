@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS
+    users (
+        userid text NOT NULL,
+        email text NOT NULL,
+        mobile text NOT NULL,
+        name text NOT NULL CHECK (char_length(name) <= 256),
+        ispendingapproval boolean NOT NULL,
+        isenabled boolean NOT NULL,
+        updatedat bigint default CAST(
+            extract(
+                epoch
+                from
+                    now()
+            ) * 1000 as bigint
+        ) NOT NULL,
+        updatedby text NOT NULL,
+        usermeta jsonb NOT NULL,
+        PRIMARY KEY (orgid, userid),
+        UNIQUE (userid)
+    );
+
+
