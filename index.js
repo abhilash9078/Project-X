@@ -6,6 +6,8 @@ import { PgPool } from "./app/utils/pgpool.js";
 import APIServer from "./app/utils/apiserver.js";
 import HealthSvc from "./app/services/health/health.js";
 import { HealthHdlr } from "./app/handlers/health/health.js";
+import { UserSvc } from "./app/services/usersvc/usersvc.js";
+import { UserHdlr } from "./app/handlers/userhdlr/userhdlr.js";
 
 if (process.argv.length < 3) {
   console.log("Run as node index.js <file:config.json>");
@@ -62,13 +64,18 @@ let pgPoolI = new PgPool(pgDBCfgI, loggercreatef(logdir, "pglogs"));
 
 // Services...
 let healthSvcI = new HealthSvc();
+let servicelogger = loggercreatef(logdir, "service");
+let userSvcI = new UserSvc(pgPoolI, servicelogger);
 
 // Handlers...
 let healthHdlrI = new HealthHdlr(healthSvcI);
+let UserHdlrI = new UserHdlr(userSvcI);
 
 // Routes...
-let apiRoutes = [["/api/v1/health/", healthHdlrI]];
-
+let apiRoutes = [
+  ["/api/v1/health/", healthHdlrI],
+  ["/api/v1/user/", UserHdlrI],
+];
 // API Server...
 let apiserverlogger = loggercreatef(logdir, "apiserver");
 let App = new APIServer(apiRoutes, apiserverlogger);

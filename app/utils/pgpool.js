@@ -1,18 +1,14 @@
 import pg from "pg";
 import XErr from "./xerr.js";
 
-export const ErrConnect = new XErr("ERR_CONNECT", null, "db connect error");
-export const ErrTXNRollback = new XErr(
-  "ERR_TXN_ROLLBACK",
-  null,
-  "txn rollback error"
-);
-export const ErrTXNExec = new XErr("ERR_TXN_EXEC", null, "txn exec error");
+const ErrConnect = new XErr('ERR_CONNECT', 'Database connection error');
+const ErrTXNRollback = new XErr('ERR_TXN_ROLLBACK', 'Transaction rollback error');
+const ErrTXNExec = new XErr('ERR_TXN_EXEC', 'Transaction execution error');
 
 export class PgPool {
   constructor(pgcfg, logger) {
     this.logger = logger;
-    this.Pool = new pg.Pool({
+    this.pool = new pg.Pool({
       user: pgcfg.user,
       host: pgcfg.host,
       port: pgcfg.port,
@@ -21,68 +17,73 @@ export class PgPool {
       min: 2,
       max: 5,
       statement_timeout: 30 * 1000,
+      ssl: {
+        rejectUnauthorized: false, // For self-signed certificates
+      },
+      sslmode: 'require', // Ensure SSL is required
     });
-    this.Pool.on("connect", (client) => {
-      client.query("SET search_path TO " + pgcfg.schema + ",public");
+
+    this.pool.on('connect', (client) => {
+      client.query(`SET search_path TO ${pgcfg.schema},public`);
     });
   }
 
-  async Query(...args) {
-    return this.Pool.query(...args);
-  }
-
-  async RunTransaction(queryfn) {
-    let client = null;
+  async Query(text, params = []) {
+    const client = await this.pool.connect();
     try {
-      client = await this.Pool.connect();
+      const result = await client.query(text, params);
+      return result.rows;
     } catch (error) {
       this.logger.error(error);
-      return [null, ErrConnect];
-    }
-    try {
-      await client.query("BEGIN");
-      let funcres = await queryfn(client);
-      await this.TxRollback(client);
-      return funcres;
-    } catch (error) {
-      //   console.log("Tx Exec err:", e.toString());
-      //   console.log(e);
-      let rollbackerr = await this.TxRollback(client);
-      if (rollbackerr != null) {
-        this.logger.error(rollbackerr);
-        return [null, ErrTXNRollback];
-      }
-      this.logger.error(error);
-      return [null, ErrTXNExec];
+      throw new XErr('ERR_QUERY', 'Error executing query');
     } finally {
       client.release();
     }
   }
 
+  async RunTransaction(queryfn) {
+    let client = null;
+    try {
+      client = await this.pool.connect();
+      await client.query('BEGIN');
+      const result = await queryfn(client);
+      await this.TxCommit(client);
+      return result;
+    } catch (error) {
+      await this.TxRollback(client);
+      this.logger.error(error);
+      if (error instanceof XErr) {
+        throw error;
+      } else {
+        throw new XErr('ERR_TXN_EXEC', 'Error executing transaction');
+      }
+    } finally {
+      if (client) client.release();
+    }
+  }
+
   async TxCommit(client) {
     try {
-      await client.query("COMMIT");
+      await client.query('COMMIT');
     } catch (error) {
-      return error;
+      throw new XErr('ERR_TXN_COMMIT', 'Error committing transaction');
     }
-    return null;
   }
 
   async TxRollback(client) {
     try {
-      await client.query("ROLLBACK");
+      if (client) await client.query('ROLLBACK');
     } catch (error) {
-      return error;
+      throw new XErr('ERR_TXN_ROLLBACK', 'Error rolling back transaction');
     }
-    return null;
   }
 
   async End() {
     try {
-      await this.Pool.end();
+      await this.pool.end();
     } catch (error) {
-      return error;
+      throw new XErr('ERR_POOL_END', 'Error ending pool connection');
     }
-    return null;
   }
 }
+
