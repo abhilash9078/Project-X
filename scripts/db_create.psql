@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS
         email text default NULL,
         name text NOT NULL CHECK (char_length(name) <= 256),
         password text NOT NULL,
+        secretprv text NOT NULL,
+        secretpub text NOT NULL,
         ispendingapproval boolean NOT NULL,
         isenabled boolean NOT NULL,
         updatedat bigint default CAST(

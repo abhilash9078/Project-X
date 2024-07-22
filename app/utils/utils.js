@@ -47,8 +47,8 @@ export function GetBaseUIPathFromReferer(headers) {
 }
 
 // Method to set salt and hash the password for a user
-export function GetPasswordHash(reqpassword, orgid) {
-  const salt = orgid;
+export function GetPasswordHash(reqpassword, userid) {
+  const salt = userid;
   // Hashing user's salt and password with 1000 iterations,
   let passwordhash = crypto
     .pbkdf2Sync(reqpassword, salt, 1000, 64, `sha512`)
@@ -56,6 +56,6 @@ export function GetPasswordHash(reqpassword, orgid) {
   return passwordhash;
 }
 
-export function IsvalidPassword(reqpassword, orgid, hashedpassword) {
-  return GetPasswordHash(reqpassword, orgid) === hashedpassword;
+export function IsvalidPassword(reqpassword, userid, hashedpassword) {
+  return GetPasswordHash(reqpassword, userid) === hashedpassword;
 }

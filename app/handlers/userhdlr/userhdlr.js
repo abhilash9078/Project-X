@@ -28,7 +28,15 @@ export class UserHdlr {
     return APIResponseSvc(req, res, resp, "Sign up Completed");
   };
 
+  Login = async (req, res, next) => {
+    let loginreq = req.body;
+
+    let resp = await this.userSvcI.Login(loginreq);
+    return APIResponseSvc(req, res, resp, "Login Token Fetched successfully");
+  };
+
   RegisterRoutes(router) {
     router.post("/signup", this.SignUp);
+    router.post("/login", this.Login);
   }
 }

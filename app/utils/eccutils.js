@@ -12,7 +12,6 @@ export function GenerateSecrets() {
   // Generate the ED25519 key pair
   let ed25519keypair = CreateED25519KeyPair();
 
-  // Convert the keys to desired format
   const publicKeyHex = ed25519keypair.publicKey
     .export({ format: "der", type: "spki" })
     .toString("hex")
@@ -27,8 +26,6 @@ export function GenerateSecrets() {
     publicKey: publicKeyHex,
     privateKey: privateKeyHex,
   };
-
-  // console.log("keypair", keypair);
 
   return keypair;
 }
