@@ -6,7 +6,6 @@ export async function sleep(timeout) {
   });
 }
 
-
 export function GetTokenFromHeader(headers) {
   let authheader = headers.authorization;
 
@@ -25,7 +24,7 @@ export function GetTokenFromHeader(headers) {
 }
 
 export function GetRefererFromHeader(headers) {
-  let refererheader = headers.referer;
+  const refererheader = headers.referer;
 
   if (refererheader === undefined || refererheader === null) {
     return "";
@@ -35,14 +34,14 @@ export function GetRefererFromHeader(headers) {
 }
 
 export function GetBaseUIPathFromReferer(headers) {
-  let refererheader = headers.referer;
+  const refererheader = headers.referer;
 
   if (refererheader === undefined || refererheader === null) {
     return "";
   }
 
-  let sa = refererheader.split("/");
-  let baselink = sa.slice(0, Math.min(3, sa.length)).join("/");
+  const sa = refererheader.split("/");
+  const baselink = sa.slice(0, Math.min(3, sa.length)).join("/");
   return baselink;
 }
 
@@ -50,7 +49,7 @@ export function GetBaseUIPathFromReferer(headers) {
 export function GetPasswordHash(reqpassword, userid) {
   const salt = userid;
   // Hashing user's salt and password with 1000 iterations,
-  let passwordhash = crypto
+  const passwordhash = crypto
     .pbkdf2Sync(reqpassword, salt, 1000, 64, `sha512`)
     .toString(`hex`);
   return passwordhash;

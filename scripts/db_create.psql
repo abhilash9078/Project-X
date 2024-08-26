@@ -42,5 +42,3 @@ CREATE TABLE IF NOT EXISTS
         PRIMARY KEY (userid, addressid),
         UNIQUE (userid)
     );
-
-

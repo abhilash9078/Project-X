@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+
 export function CreateED25519KeyPair() {
   const keypair = crypto.generateKeyPairSync(
     "ed25519",
@@ -10,7 +11,7 @@ export function CreateED25519KeyPair() {
 
 export function GenerateSecrets() {
   // Generate the ED25519 key pair
-  let ed25519keypair = CreateED25519KeyPair();
+  const ed25519keypair = CreateED25519KeyPair();
 
   const publicKeyHex = ed25519keypair.publicKey
     .export({ format: "der", type: "spki" })
@@ -22,10 +23,7 @@ export function GenerateSecrets() {
     .toString("hex")
     .toUpperCase();
 
-  let keypair = {
-    publicKey: publicKeyHex,
-    privateKey: privateKeyHex,
-  };
+  const keypair = { publicKey: publicKeyHex, privateKey: privateKeyHex };
 
   return keypair;
 }

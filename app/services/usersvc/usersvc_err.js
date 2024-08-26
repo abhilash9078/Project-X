@@ -6,7 +6,7 @@ export const ErrDBQuery = new XErr(
   "err while running db query"
 );
 
-export const ErrInvlaidIdToken = new XErr(
+export const ErrInvalidIdToken = new XErr(
   "INVALID_IDTOKEN",
   null,
   "invalid idtoken"
@@ -85,5 +85,5 @@ export const ErrInvalidToken = new XErr("INVALID_TOKEN", null, "invalid token");
 export const ErrInvalidArg = new XErr(
   "INVALID_ARG",
   null,
-  "invalid argmuent given"
+  "invalid argument given"
 );

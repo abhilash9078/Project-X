@@ -1,15 +1,15 @@
-import JWTUtils from "../../utils/jwtutils.js";
 import { v4 as uuidv4 } from "uuid";
 import { GenerateSecrets } from "../../utils/eccutils.js";
+import JWTUtils from "../../utils/jwtutils.js";
 import { GetPasswordHash, IsvalidPassword } from "../../utils/utils.js";
 import {
-  ErrInternal,
   ErrDBQuery,
+  ErrInternal,
   ErrInvalidArg,
+  ErrInvalidPassword,
+  ErrUnAuthorized,
   ErrUserNotFound,
-  ErrEmailUnverified,
   ErrUserPendingApproval,
-  ErrInvalidPassword
 } from "./usersvc_err.js";
 
 export class UserSvc {
@@ -25,6 +25,10 @@ export class UserSvc {
 
   async Login(loginreq) {
     return this.#loginemailpwdv1(loginreq);
+  }
+
+  async AddAddress(addaddressreq) {
+    return this.#addaddressv1(addaddressreq);
   }
 
   async #signupemailpwdv1(signupreq) {
@@ -51,7 +55,7 @@ export class UserSvc {
         return [null, ErrInternal];
       }
 
-      let addusermeta = {
+      const addusermeta = {
         userid: userid,
         mobile: mobile,
         email: email,
@@ -62,7 +66,7 @@ export class UserSvc {
         isenabled: true,
       };
 
-      let txnResp = await this.#inserttouserpwdentries(addusermeta);
+      const txnResp = await this.#inserttouserpwdentries(addusermeta);
       if (txnResp[1] !== null) {
         return txnResp;
       }
@@ -88,16 +92,11 @@ export class UserSvc {
       // Execute a query
       const result = await this.pgI.Query(query, queryparams);
       if (result.rowCount == 0) {
-        return [
-          null,
-          ErrUserNotFound.NewData({
-            mobile: mobile
-          }),
-        ];
+        return [null, ErrUserNotFound.NewData({ mobile })];
       }
 
-      let row = result[0];
-      let logininfo = {
+      const row = result[0];
+      const logininfo = {
         userid: row.userid,
         mobile: row.mobile,
         password: row.password,
@@ -134,10 +133,52 @@ export class UserSvc {
     }
   }
 
+  async #addaddressv1(addaddressreq, token) {
+    try {
+      if (!this.jwtSvcI.ValidateJWT(token)) {
+        return [null, ErrUnAuthorized];
+      }
+
+      const userInfo = this.jwtSvcI.DecodeJWT(token);
+      const userid = userInfo.userid;
+
+      const addressid = uuidv4();
+      const doorno = addaddressreq.doorNo;
+      const street = addaddressreq.street;
+      const area = addaddressreq.area;
+      const landmark = addaddressreq.landmark;
+      const city = addaddressreq.city;
+      const state = addaddressreq.state;
+      const mobile = addaddressreq.mobile;
+      const pin = addaddressreq.pin;
+
+      const addaddressmeta = {
+        userid,
+        addressid,
+        mobile,
+        pin,
+        currentlocation: { doorno, street, area, city, state },
+        landmark,
+        addressmeta: {},
+      };
+
+      // Execute a query
+      const txnResp = await this.#inserttouseraddressentries(addaddressmeta);
+      if (txnResp[1] !== null) {
+        return txnResp;
+      }
+      return txnResp;
+    } catch (error) {
+      this.logger.error("Error add user address");
+      this.logger.error(error);
+      return [null, ErrInternal];
+    }
+  }
+
   async #inserttouserpwdentries(addusermeta) {
     try {
-      let txresp = await this.pgI.RunTransaction(async (client) => {
-        let uresp = await this.#addToUsersTable(client, addusermeta);
+      const txresp = await this.pgI.RunTransaction(async (client) => {
+        const uresp = await this.#addToUsersTable(client, addusermeta);
         if (uresp[1] != null) {
           return [null, uresp[1]];
         }
@@ -151,9 +192,61 @@ export class UserSvc {
     }
   }
 
+  async #inserttouseraddressentries(addaddressmeta) {
+    try {
+      const txresp = await this.pgI.RunTransaction(async (client) => {
+        const uresp = await this.#addUserAddressToTable(client, addaddressmeta);
+        if (uresp[1] != null) {
+          return [null, uresp[1]];
+        }
+        return [uresp[0], null];
+      });
+      return txresp;
+    } catch (error) {
+      this.logger.error("Error inserting entries: inserttouseraddressentries");
+      this.logger.error(error);
+      return [null, ErrDBQuery];
+    }
+  }
+
+  async #addUserAddressToTable(client, addaddressmeta) {
+    try {
+      const query = `INSERT into useraddress (userid, addressid, mobile, pin, currentlocation, landmark, addressmeta, updatedby) values($1, $2, $3, $4, $5, $6, $7, $8) returning userid, addressid, updatedat, updatedby`;
+
+      const queryparams = [
+        addaddressmeta.userid,
+        addaddressmeta.addressid,
+        addaddressmeta.mobile,
+        addaddressmeta.pin,
+        addaddressmeta.curentlocation,
+        addaddressmeta.landmark,
+        addaddressmeta.addressmeta,
+        addaddressmeta.userid,
+      ];
+
+      // Execute a query
+      const result = await client.query(query, queryparams);
+      if (result.rowCount === 0) {
+        throw new Error("Could not insert into useraddress table " + userid);
+      }
+
+      const row = result.rows[0];
+      const addressInfo = {
+        userid: row.userid,
+        addressid: row.addressid,
+        updatedat: parseInt(row.updatedat),
+        updatedby: row.updatedby,
+      };
+      return [addressInfo, null];
+    } catch (error) {
+      this.logger.error(error);
+      return [null, ErrDBQuery];
+    }
+  }
+
   async #addToUsersTable(client, addusermeta) {
     try {
-      let keypair = GenerateSecrets();
+      const keypair = GenerateSecrets();
       const hashedpassword = GetPasswordHash(
         addusermeta.password,
         addusermeta.userid
@@ -181,8 +274,8 @@ export class UserSvc {
         throw new Error("Could not insert into users table " + userid);
       }
 
-      let row = result.rows[0];
-      let userinfo = {
+      const row = result.rows[0];
+      const userinfo = {
         userid: row.userid,
         email: row.email,
         mobile: row.mobile,
@@ -234,51 +327,44 @@ export class UserSvc {
   }
 
   async #respondWithLoginToken(userinfo) {
-    let currtime = new Date().getTime();
-    let usertokenvalidity = currtime + 30 * 24 * 3600 * 1000;
-    let accesstokenvalidity = currtime + 30 * 24 * 3600 * 1000;
+    const currtime = new Date().getTime();
+    const usertokenvalidity = currtime + 30 * 24 * 3600 * 1000;
+    const accesstokenvalidity = currtime + 30 * 24 * 3600 * 1000;
 
-    let secret = userinfo.secretprv;
+    const secret = userinfo.secretprv;
 
-    let usertokenpayload = {
+    const usertokenpayload = {
       type: "user",
       mobile: userinfo.mobile,
       userid: userinfo.userid,
     };
 
-    let usertoken = await this.jwtSvcI.GenerateJWT(
+    const usertoken = await this.jwtSvcI.GenerateJWT(
       usertokenpayload,
       secret,
       parseInt(usertokenvalidity / 1000.0)
     );
 
-    let accesstokenpayload = {
+    const accesstokenpayload = {
       type: "access",
       mobile: userinfo.mobile,
       userid: userinfo.userid,
     };
 
-    let accesstoken = await this.jwtSvcI.GenerateJWT(
+    const accesstoken = await this.jwtSvcI.GenerateJWT(
       accesstokenpayload,
       secret,
       parseInt(accesstokenvalidity / 1000.0)
     );
 
-    let loginuserinfo = {
+    const loginuserinfo = {
       userid: userinfo.userid,
       email: userinfo.email,
       mobile: userinfo.mobile,
       name: userinfo.name,
     };
 
-    return [
-      {
-        usertoken: usertoken,
-        accesstoken: accesstoken,
-        userinfo: loginuserinfo,
-      },
-      null,
-    ];
+    return [{ usertoken, accesstoken, userinfo: loginuserinfo }, null];
   }
 
   #isNil(input) {

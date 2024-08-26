@@ -1,7 +1,4 @@
-import {
-  APIResponseInternalErr,
-  APIResponseOK,
-} from "../../utils/handlers.js";
+import { APIResponseInternalErr, APIResponseOK } from "../../utils/handlers.js";
 
 export class HealthHdlr {
   constructor(healthSvcI) {

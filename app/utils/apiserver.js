@@ -1,11 +1,11 @@
-import { APIResponseError, APIResponseForbidden } from "./handlers.js";
-import promiserouter from "express-promise-router";
-import express from "express";
 import bodyParser from "body-parser";
 import compression from "compression";
+import cors from "cors";
+import express from "express";
+import promiserouter from "express-promise-router";
 import morgan from "morgan";
 import requestIp from "request-ip";
-import cors from "cors";
+import { APIResponseError, APIResponseForbidden } from "./handlers.js";
 
 export default class APIServer {
   constructor(apiroutehandlers, logger) {

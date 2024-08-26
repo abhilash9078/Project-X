@@ -1,13 +1,13 @@
 import fs from "fs";
-import winston from "winston";
 import path from "path";
+import winston from "winston";
 import DailyRotateFile from "winston-daily-rotate-file";
-import { PgPool } from "./app/utils/pgpool.js";
-import APIServer from "./app/utils/apiserver.js";
-import HealthSvc from "./app/services/health/health.js";
 import { HealthHdlr } from "./app/handlers/health/health.js";
-import { UserSvc } from "./app/services/usersvc/usersvc.js";
 import { UserHdlr } from "./app/handlers/userhdlr/userhdlr.js";
+import HealthSvc from "./app/services/health/health.js";
+import { UserSvc } from "./app/services/usersvc/usersvc.js";
+import APIServer from "./app/utils/apiserver.js";
+import { PgPool } from "./app/utils/pgpool.js";
 
 if (process.argv.length < 3) {
   console.log("Run as node index.js <file:config.json>");
@@ -22,7 +22,7 @@ const myFormat = winston.format.printf(
   }
 );
 
-let loggercreatef = function (logdir, filename) {
+const loggercreatef = function (logdir, filename) {
   const logfilename = path.join(logdir, filename + "-%DATE%.log");
   const logger = winston.createLogger({
     level: "info",
@@ -53,31 +53,31 @@ let loggercreatef = function (logdir, filename) {
 };
 
 // 0. Config Related...
-let configfile = process.argv[2];
-let config = JSON.parse(fs.readFileSync(configfile, "utf8"));
-let apiserverport = config.apiserver.port;
-let logdir = path.join(config.scratchdir, "logs");
+const configfile = process.argv[2];
+const config = JSON.parse(fs.readFileSync(configfile, "utf8"));
+const apiserverport = config.apiserver.port;
+const logdir = path.join(config.scratchdir, "logs");
 fs.existsSync(logdir) || fs.mkdirSync(logdir);
 
 const pgDBCfgI = config.pgdb;
-let pgPoolI = new PgPool(pgDBCfgI, loggercreatef(logdir, "pglogs"));
+const pgPoolI = new PgPool(pgDBCfgI, loggercreatef(logdir, "pglogs"));
 
 // Services...
-let healthSvcI = new HealthSvc();
-let servicelogger = loggercreatef(logdir, "service");
-let userSvcI = new UserSvc(pgPoolI, servicelogger);
+const healthSvcI = new HealthSvc();
+const servicelogger = loggercreatef(logdir, "service");
+const userSvcI = new UserSvc(pgPoolI, servicelogger);
 
 // Handlers...
-let healthHdlrI = new HealthHdlr(healthSvcI);
-let UserHdlrI = new UserHdlr(userSvcI);
+const healthHdlrI = new HealthHdlr(healthSvcI);
+const UserHdlrI = new UserHdlr(userSvcI);
 
 // Routes...
-let apiRoutes = [
+const apiRoutes = [
   ["/api/v1/health/", healthHdlrI],
   ["/api/v1/user/", UserHdlrI],
 ];
 // API Server...
-let apiserverlogger = loggercreatef(logdir, "apiserver");
-let App = new APIServer(apiRoutes, apiserverlogger);
+const apiserverlogger = loggercreatef(logdir, "apiserver");
+const App = new APIServer(apiRoutes, apiserverlogger);
 
 App.Start(apiserverport);

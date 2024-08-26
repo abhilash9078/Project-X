@@ -1,9 +1,12 @@
 import pg from "pg";
 import XErr from "./xerr.js";
 
-const ErrConnect = new XErr('ERR_CONNECT', 'Database connection error');
-const ErrTXNRollback = new XErr('ERR_TXN_ROLLBACK', 'Transaction rollback error');
-const ErrTXNExec = new XErr('ERR_TXN_EXEC', 'Transaction execution error');
+const ErrConnect = new XErr("ERR_CONNECT", "Database connection error");
+const ErrTXNRollback = new XErr(
+  "ERR_TXN_ROLLBACK",
+  "Transaction rollback error"
+);
+const ErrTXNExec = new XErr("ERR_TXN_EXEC", "Transaction execution error");
 
 export class PgPool {
   constructor(pgcfg, logger) {
@@ -20,10 +23,10 @@ export class PgPool {
       ssl: {
         rejectUnauthorized: false, // For self-signed certificates
       },
-      sslmode: 'require', // Ensure SSL is required
+      sslmode: "require", // Ensure SSL is required
     });
 
-    this.pool.on('connect', (client) => {
+    this.pool.on("connect", (client) => {
       client.query(`SET search_path TO ${pgcfg.schema},public`);
     });
   }
@@ -35,7 +38,7 @@ export class PgPool {
       return result.rows;
     } catch (error) {
       this.logger.error(error);
-      throw new XErr('ERR_QUERY', 'Error executing query');
+      throw new XErr("ERR_QUERY", "Error executing query");
     } finally {
       client.release();
     }
@@ -45,7 +48,7 @@ export class PgPool {
     let client = null;
     try {
       client = await this.pool.connect();
-      await client.query('BEGIN');
+      await client.query("BEGIN");
       const result = await queryfn(client);
       await this.TxCommit(client);
       return result;
@@ -55,7 +58,7 @@ export class PgPool {
       if (error instanceof XErr) {
         throw error;
       } else {
-        throw new XErr('ERR_TXN_EXEC', 'Error executing transaction');
+        throw new XErr("ERR_TXN_EXEC", "Error executing transaction");
       }
     } finally {
       if (client) client.release();
@@ -64,17 +67,17 @@ export class PgPool {
 
   async TxCommit(client) {
     try {
-      await client.query('COMMIT');
+      await client.query("COMMIT");
     } catch (error) {
-      throw new XErr('ERR_TXN_COMMIT', 'Error committing transaction');
+      throw new XErr("ERR_TXN_COMMIT", "Error committing transaction");
     }
   }
 
   async TxRollback(client) {
     try {
-      if (client) await client.query('ROLLBACK');
+      if (client) await client.query("ROLLBACK");
     } catch (error) {
-      throw new XErr('ERR_TXN_ROLLBACK', 'Error rolling back transaction');
+      throw new XErr("ERR_TXN_ROLLBACK", "Error rolling back transaction");
     }
   }
 
@@ -82,8 +85,7 @@ export class PgPool {
     try {
       await this.pool.end();
     } catch (error) {
-      throw new XErr('ERR_POOL_END', 'Error ending pool connection');
+      throw new XErr("ERR_POOL_END", "Error ending pool connection");
     }
   }
 }
-

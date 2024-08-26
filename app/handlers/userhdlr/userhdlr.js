@@ -1,8 +1,9 @@
-import XErr from "../../utils/xerr.js";
+import { ErrUnAuthorized } from "../../services/usersvc/usersvc_err.js";
 import {
   APIResponseSvc,
-  ApiResponseXErr,
+  APIResponseUnauthorized,
 } from "../../utils/handlers.js";
+import XErr from "../../utils/xerr.js";
 
 export const ErrReqInvalid = new XErr(
   "ERR_INVALID_REQ",
@@ -21,22 +22,33 @@ export class UserHdlr {
     this.userSvcI = userSvcI;
   }
 
-  SignUp = async (req, res, next) => {
-    let singupreq = req.body;
+  SignUp = async (req, res) => {
+    const signupreq = req.body;
 
-    let resp = await this.userSvcI.SignUp(singupreq);
+    const resp = await this.userSvcI.SignUp(signupreq);
     return APIResponseSvc(req, res, resp, "Sign up Completed");
   };
 
-  Login = async (req, res, next) => {
-    let loginreq = req.body;
+  Login = async (req, res) => {
+    const loginreq = req.body;
 
-    let resp = await this.userSvcI.Login(loginreq);
+    const resp = await this.userSvcI.Login(loginreq);
     return APIResponseSvc(req, res, resp, "Login Token Fetched successfully");
+  };
+
+  AddAddress = async (req, res) => {
+    const addaddressreq = req.body;
+    const authHeader = req.headers.authorization;
+    const token = authHeader.split(" ")[1];
+    if (!token) return APIResponseUnauthorized(req, res, ErrUnAuthorized);
+
+    const resp = await this.userSvcI.AddAddress(addaddressreq, token);
+    return APIResponseSvc(req, res, resp, "Address added successfully");
   };
 
   RegisterRoutes(router) {
     router.post("/signup", this.SignUp);
     router.post("/login", this.Login);
+    router.post("/addaddress", this.AddAddress);
   }
 }

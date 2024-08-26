@@ -1,17 +1,10 @@
 // API Response structure...
 export function apiresponseerror(errcode, errdata) {
-  return {
-    errcode: errcode,
-    errdata: errdata,
-  };
+  return { errcode, errdata };
 }
 
 export function apiresponse(err, data, msg) {
-  return {
-    err: err,
-    data: data,
-    msg: msg,
-  };
+  return { err, data, msg };
 }
 
 export function APIResponseSvc(req, res, resp, succmsg) {
