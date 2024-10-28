@@ -18,6 +18,12 @@ export const ErrUserPendingApproval = new XErr(
   "Your account in not yet approved!!! Please contact the Administrator"
 );
 
+export const ErrUserAlreadyExists = new XErr(
+  "ERR_USER_ALREADY_EXISTS",
+  null,
+  "user is already exists"
+)
+
 export const ErrInternal = new XErr("ERR_INTERNAL", null, "internal error");
 
 export const ErrUserNotFound = new XErr(

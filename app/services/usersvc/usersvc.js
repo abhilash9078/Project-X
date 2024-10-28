@@ -8,6 +8,7 @@ import {
   ErrInvalidArg,
   ErrInvalidPassword,
   ErrUnAuthorized,
+  ErrUserAlreadyExists,
   ErrUserNotFound,
   ErrUserPendingApproval,
 } from "./usersvc_err.js";
@@ -51,6 +52,9 @@ export class UserSvc {
         mobileCheckQuery,
         mobileCheckqueryparams
       );
+      if (emailCheckresult[0].mobile === mobile){
+        return[null, ErrUserAlreadyExists]
+      }
       if (emailCheckresult.rowCount > 0) {
         return [null, ErrInternal];
       }
@@ -284,8 +288,11 @@ export class UserSvc {
         isenabled: row.isenabled,
         updatedat: parseInt(row.updatedat),
         usermeta: row.usermeta,
+        secretprv: keypair.privateKey,
+        secretpub:keypair.publicKey,
       };
-      return [userinfo, null];
+      return this.#respondWithLoginToken(userinfo);
+      // return [userinfo, null];
     } catch (error) {
       this.logger.error(error);
       return [null, ErrDBQuery];
